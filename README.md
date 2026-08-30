@@ -506,20 +506,7 @@ Log search needs full-text search, filtering, aggregations, time-based indexes, 
 
 PostgreSQL should own metadata such as users, projects, API keys, log sources, and configuration. High-volume log documents should go to OpenSearch, not PostgreSQL.
 
-## 🏆 Portfolio Description
 
-Use this description once the project is mature:
-
-> **LogMesh — Distributed Log Aggregation & Monitoring Platform**
->
-> Built a distributed log ingestion, search, and monitoring platform using Go, Kafka, OpenSearch, PostgreSQL, Redis, and Next.js. Implemented structured and plain-text log ingestion, concurrent processing, worker pools, backpressure-aware pipelines, API-key authentication, sensitive-field masking, real-time log streaming, analytics dashboards, CSV export, runtime metrics, and observability integrations with Prometheus and Grafana.
-
-## 📌 Current Local URLs
-
-```text
-Backend:  http://localhost:8081
-Frontend: http://localhost:3000
-```
 
 ## ✨ Status
 
