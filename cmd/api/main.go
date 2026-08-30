@@ -14,6 +14,7 @@ import (
 
 	"logmesh/internal/config"
 	"logmesh/internal/handler"
+	"logmesh/internal/kafka"
 	"logmesh/internal/middleware"
 	"logmesh/internal/service"
 )
@@ -33,8 +34,10 @@ func main() {
 	logService := service.NewInMemoryLogService(cfg.MaxStoredLogs)
 	keyService := service.NewInMemoryAPIKeyService()
 	eventHub := service.NewEventHub()
+	logProducer := kafka.NewProducer(cfg.KafkaBrokers, cfg.KafkaLogsTopic)
+	defer logProducer.Close()
 
-	logHandler := handler.NewLogHandler(logService, eventHub)
+	logHandler := handler.NewLogHandler(logService, eventHub, logProducer)
 	analyticsHandler := handler.NewAnalyticsHandler(service.NewAnalyticsService(logService))
 	keyHandler := handler.NewAPIKeyHandler(keyService)
 	streamHandler := handler.NewStreamHandler(eventHub)
