@@ -11,12 +11,14 @@ type Project struct {
 type User struct {
 	ID           string    `json:"id"`
 	ProjectID    string    `json:"project_id"`
+	Name         string    `json:"name"`
 	Email        string    `json:"email"`
 	PasswordHash string    `json:"-"`
 	CreatedAt    time.Time `json:"created_at"`
 }
 
 type AuthRequest struct {
+	Name     string `json:"name"`
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
