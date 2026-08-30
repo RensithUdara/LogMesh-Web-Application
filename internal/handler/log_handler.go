@@ -29,23 +29,8 @@ func (h *LogHandler) Ingest(c *gin.Context) {
 		return
 	}
 
-	req.Service = strings.TrimSpace(req.Service)
-	req.Message = strings.TrimSpace(req.Message)
-	req.Level = model.LogLevel(strings.ToUpper(strings.TrimSpace(string(req.Level))))
-
-	if req.Service == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "service is required"})
-		return
-	}
-	if req.Message == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "message is required"})
-		return
-	}
-	if req.Level == "" {
-		req.Level = model.LevelInfo
-	}
-	if !model.IsValidLogLevel(req.Level) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "level must be one of TRACE, DEBUG, INFO, WARN, ERROR, FATAL"})
+	if err := normalizeAndValidateLogRequest(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
@@ -60,6 +45,26 @@ func (h *LogHandler) Ingest(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusAccepted, event)
+}
+
+func normalizeAndValidateLogRequest(req *model.IngestLogRequest) error {
+	req.Service = strings.TrimSpace(req.Service)
+	req.Message = strings.TrimSpace(req.Message)
+	req.Level = model.LogLevel(strings.ToUpper(strings.TrimSpace(string(req.Level))))
+
+	if req.Service == "" {
+		return errors.New("service is required")
+	}
+	if req.Message == "" {
+		return errors.New("message is required")
+	}
+	if req.Level == "" {
+		req.Level = model.LevelInfo
+	}
+	if !model.IsValidLogLevel(req.Level) {
+		return errors.New("level must be one of TRACE, DEBUG, INFO, WARN, ERROR, FATAL")
+	}
+	return nil
 }
 
 func (h *LogHandler) Search(c *gin.Context) {
