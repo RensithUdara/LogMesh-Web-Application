@@ -53,7 +53,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import { bulkIngestLogs, createAPIKey, fetchAPIKeys, fetchAnalytics, fetchRuntime, fetchSources, logExportURL, loginUser, parseTextLog, registerUser, revokeAPIKey } from "@/lib/api";
+import { authHeaders, bulkIngestLogs, createAPIKey, fetchAPIKeys, fetchAnalytics, fetchRuntime, fetchSources, logExportURL, loginUser, parseTextLog, registerUser, revokeAPIKey } from "@/lib/api";
 import { apiBase, environments, levelClass, levels, services } from "@/lib/constants";
 import type { APIKey, AnalyticsSummary, CountBucket, LogEvent, LogLevel, RuntimeStats, SearchResponse, SourceSummary, TimelineBucket } from "@/lib/types";
 
@@ -147,7 +147,8 @@ export default function Dashboard() {
 
     try {
       const response = await fetch(`${apiBase}/v1/logs?${params.toString()}`, {
-        cache: "no-store"
+        cache: "no-store",
+        headers: authHeaders()
       });
       if (!response.ok) throw new Error("search failed");
       const payload = (await response.json()) as SearchResponse;
@@ -233,7 +234,7 @@ export default function Dashboard() {
     try {
       const response = await fetch(`${apiBase}/v1/logs`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { ...authHeaders(), "Content-Type": "application/json" },
         body: JSON.stringify({
           service: form.service,
           environment: form.environment,
