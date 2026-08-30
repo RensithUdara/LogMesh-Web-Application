@@ -30,7 +30,13 @@ func main() {
 	}))
 
 	logService := service.NewInMemoryLogService(cfg.MaxStoredLogs)
-	logHandler := handler.NewLogHandler(logService)
+	keyService := service.NewInMemoryAPIKeyService()
+	eventHub := service.NewEventHub()
+
+	logHandler := handler.NewLogHandler(logService, eventHub)
+	analyticsHandler := handler.NewAnalyticsHandler(service.NewAnalyticsService(logService))
+	keyHandler := handler.NewAPIKeyHandler(keyService)
+	streamHandler := handler.NewStreamHandler(eventHub)
 
 	router := gin.New()
 	router.Use(gin.Recovery(), middleware.CORS(), middleware.RequestLogger(logger))
@@ -45,9 +51,15 @@ func main() {
 
 	v1 := router.Group("/v1")
 	{
-		v1.POST("/logs", logHandler.Ingest)
+		v1.POST("/logs", middleware.APIKeyAuth(keyService, cfg.RequireAPIKey), logHandler.Ingest)
 		v1.GET("/logs", logHandler.Search)
 		v1.GET("/logs/:id", logHandler.GetByID)
+		v1.GET("/stream/logs", streamHandler.Logs)
+		v1.GET("/analytics", analyticsHandler.Summary)
+		v1.GET("/sources", analyticsHandler.Sources)
+		v1.GET("/api-keys", keyHandler.List)
+		v1.POST("/api-keys", keyHandler.Create)
+		v1.DELETE("/api-keys/:id", keyHandler.Revoke)
 	}
 
 	server := &http.Server{
