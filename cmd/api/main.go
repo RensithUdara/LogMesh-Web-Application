@@ -33,7 +33,7 @@ func main() {
 	logHandler := handler.NewLogHandler(logService)
 
 	router := gin.New()
-	router.Use(gin.Recovery(), middleware.RequestLogger(logger))
+	router.Use(gin.Recovery(), middleware.CORS(), middleware.RequestLogger(logger))
 
 	router.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
