@@ -166,25 +166,32 @@ export default function Dashboard() {
 
   useEffect(() => {
     setAuthToken(window.localStorage.getItem("logmesh_token"));
-    void checkHealth();
-    void fetchLogs();
-    void fetchServerPanels();
+    void bootstrapDashboard();
   }, []);
 
   useEffect(() => {
+    if (apiStatus !== "online") return;
     if (searchDebounce.current) {
       window.clearTimeout(searchDebounce.current);
     }
     searchDebounce.current = window.setTimeout(() => void fetchLogs(), 250);
-  }, [query, level, service, environment]);
+  }, [apiStatus, query, level, service, environment]);
 
   useEffect(() => {
+    if (apiStatus !== "offline") return;
+    const interval = window.setInterval(() => void checkHealth(), 5000);
+    return () => window.clearInterval(interval);
+  }, [apiStatus]);
+
+  useEffect(() => {
+    if (apiStatus !== "online") return;
     if (!autoRefresh) return;
     const interval = window.setInterval(() => void fetchLogs(), 4000);
     return () => window.clearInterval(interval);
-  }, [autoRefresh, query, level, service, environment]);
+  }, [apiStatus, autoRefresh, query, level, service, environment]);
 
   useEffect(() => {
+    if (apiStatus !== "online") return;
     if (!autoRefresh) return;
 
     const stream = new EventSource(`${apiBase}/v1/stream/logs`);
@@ -208,7 +215,7 @@ export default function Dashboard() {
       stream.removeEventListener("log", onLog);
       stream.close();
     };
-  }, [autoRefresh, query, level, service, environment]);
+  }, [apiStatus, autoRefresh, query, level, service, environment]);
 
   useEffect(() => {
     if (!toast) return;
@@ -333,12 +340,23 @@ export default function Dashboard() {
     setAuthToken(null);
   };
 
+  async function bootstrapDashboard() {
+    const online = await checkHealth();
+    if (!online) {
+      setLoading(false);
+      return;
+    }
+    await Promise.all([fetchLogs(), fetchServerPanels()]);
+  }
+
   async function checkHealth() {
     try {
       const response = await fetch(`${apiBase}/healthz`, { cache: "no-store" });
       setApiStatus(response.ok ? "online" : "offline");
+      return response.ok;
     } catch {
       setApiStatus("offline");
+      return false;
     }
   }
 
@@ -422,11 +440,23 @@ export default function Dashboard() {
             <div className="form-grid">
               <label>
                 Email
-                <input value={authForm.email} onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })} />
+                <input
+                  autoComplete="username"
+                  name="email"
+                  type="email"
+                  value={authForm.email}
+                  onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })}
+                />
               </label>
               <label>
                 Password
-                <input type="password" value={authForm.password} onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })} />
+                <input
+                  autoComplete={authMode === "login" ? "current-password" : "new-password"}
+                  name="password"
+                  type="password"
+                  value={authForm.password}
+                  onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })}
+                />
               </label>
             </div>
             <button className="primary-button" type="submit">
