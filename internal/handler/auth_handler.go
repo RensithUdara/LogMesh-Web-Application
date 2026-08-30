@@ -25,9 +25,9 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	response, err := h.auth.Register(c.Request.Context(), req.Email, req.Password)
+	response, err := h.auth.Register(c.Request.Context(), req.Name, req.Email, req.Password)
 	if errors.Is(err, service.ErrInvalidCredentials) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "email is required and password must be at least 8 characters"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "name and email are required and password must be at least 8 characters"})
 		return
 	}
 	if err != nil {
