@@ -13,10 +13,6 @@ func APIKeyAuth(keys service.APIKeyService, required bool) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		value := strings.TrimSpace(c.GetHeader("X-API-Key"))
 		if value == "" {
-			value = bearerToken(c.GetHeader("Authorization"))
-		}
-
-		if value == "" {
 			if required {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"error": "api key is required"})
 				return
