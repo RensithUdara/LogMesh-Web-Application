@@ -25,6 +25,9 @@ func (h *ExportHandler) LogsCSV(c *gin.Context) {
 	if query.Limit <= 0 {
 		query.Limit = 500
 	}
+	if query.ProjectID == "" {
+		query.ProjectID = c.GetString("project_id")
+	}
 
 	csvBytes, err := h.exporter.CSV(c.Request.Context(), query)
 	if err != nil {
