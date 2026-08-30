@@ -15,10 +15,11 @@ import (
 
 type LogHandler struct {
 	logs service.LogService
+	hub  *service.EventHub
 }
 
-func NewLogHandler(logs service.LogService) *LogHandler {
-	return &LogHandler{logs: logs}
+func NewLogHandler(logs service.LogService, hub *service.EventHub) *LogHandler {
+	return &LogHandler{logs: logs, hub: hub}
 }
 
 func (h *LogHandler) Ingest(c *gin.Context) {
@@ -52,6 +53,10 @@ func (h *LogHandler) Ingest(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to ingest log"})
 		return
+	}
+
+	if h.hub != nil {
+		h.hub.Publish(event)
 	}
 
 	c.JSON(http.StatusAccepted, event)
