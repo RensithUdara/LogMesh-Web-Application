@@ -180,6 +180,7 @@ button {
   border: 1px solid var(--line);
   background: var(--panel);
   color: var(--text);
+  text-decoration: none;
 }
 
 .icon-button {
@@ -208,6 +209,10 @@ button {
   color: #ffffff;
   background: var(--blue);
   border-color: var(--blue);
+}
+
+.full-width {
+  width: 100%;
 }
 
 .secondary-button {
@@ -499,6 +504,18 @@ pre {
 
 textarea {
   resize: vertical;
+}
+
+.raw-log-box {
+  display: grid;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.compact-title {
+  margin-bottom: 0;
 }
 
 .analytics-grid,
