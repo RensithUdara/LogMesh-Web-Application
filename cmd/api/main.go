@@ -37,7 +37,7 @@ func main() {
 	metrics.Register()
 
 	logService := service.NewInMemoryLogService(cfg.MaxStoredLogs)
-	keyService := service.NewInMemoryAPIKeyService()
+	var keyService service.APIKeyService = service.NewInMemoryAPIKeyService()
 	authService := service.NewAuthService(cfg.JWTSecret)
 	eventHub := service.NewEventHub()
 	logProducer := kafka.NewProducer(cfg.KafkaBrokers, cfg.KafkaLogsTopic)
@@ -53,6 +53,8 @@ func main() {
 		defer postgresPool.Close()
 		if err := repository.EnsureMetadataSchema(context.Background(), postgresPool); err != nil {
 			logger.Error("postgres schema setup failed", "error", err)
+		} else {
+			keyService = service.NewPostgresAPIKeyService(postgresPool)
 		}
 	}
 
