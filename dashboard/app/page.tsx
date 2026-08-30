@@ -52,7 +52,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import { createAPIKey, fetchAPIKeys, fetchAnalytics, fetchRuntime, fetchSources, logExportURL, parseTextLog, revokeAPIKey } from "@/lib/api";
+import { bulkIngestLogs, createAPIKey, fetchAPIKeys, fetchAnalytics, fetchRuntime, fetchSources, logExportURL, parseTextLog, revokeAPIKey } from "@/lib/api";
 import { apiBase, environments, levelClass, levels, services } from "@/lib/constants";
 import type { APIKey, AnalyticsSummary, CountBucket, LogEvent, LogLevel, RuntimeStats, SearchResponse, SourceSummary, TimelineBucket } from "@/lib/types";
 
@@ -785,7 +785,7 @@ function ApiKeys({
   );
 }
 
-function SettingsView() {
+function SettingsView({ runtime }: { runtime: RuntimeStats | null }) {
   return (
     <section className="settings-grid">
       <div className="panel settings-card">
@@ -807,6 +807,17 @@ function SettingsView() {
         <div>
           <h2>Refresh</h2>
           <p>Live mode polls every 4 seconds.</p>
+        </div>
+      </div>
+      <div className="panel settings-card">
+        <Gauge size={22} />
+        <div>
+          <h2>Runtime</h2>
+          <p>
+            {runtime
+              ? `${runtime.go_version}, ${runtime.goroutines} goroutines, ${formatBytes(runtime.heap_alloc_bytes)} heap, ${runtime.stored_logs} logs`
+              : "Runtime metrics unavailable."}
+          </p>
         </div>
       </div>
     </section>
@@ -908,4 +919,10 @@ function matchesActiveFilters(
   if (filters.environment !== "ALL" && log.environment !== filters.environment) return false;
   if (filters.query.trim() && !log.message.toLowerCase().includes(filters.query.trim().toLowerCase())) return false;
   return true;
+}
+
+function formatBytes(value: number) {
+  if (value < 1024) return `${value} B`;
+  if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+  return `${(value / 1024 / 1024).toFixed(1)} MB`;
 }
