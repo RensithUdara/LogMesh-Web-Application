@@ -18,7 +18,7 @@ type Config struct {
 func Load() Config {
 	return Config{
 		Environment:   envString("LOGMESH_ENV", "development"),
-		HTTPAddr:      envString("LOGMESH_HTTP_ADDR", ":8080"),
+		HTTPAddr:      envString("LOGMESH_HTTP_ADDR", ":8081"),
 		LogLevel:      parseLogLevel(envString("LOGMESH_LOG_LEVEL", "info")),
 		MaxStoredLogs: envInt("LOGMESH_MAX_STORED_LOGS", 10000),
 		RequireAPIKey: envBool("LOGMESH_REQUIRE_API_KEY", false),
