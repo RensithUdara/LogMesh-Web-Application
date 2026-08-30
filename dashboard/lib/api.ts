@@ -2,20 +2,20 @@ import { apiBase } from "./constants";
 import type { APIKey, AnalyticsSummary, AuthResponse, LogEvent, RuntimeStats, SourceSummary } from "./types";
 
 export async function fetchAnalytics() {
-  const response = await fetch(`${apiBase}/v1/analytics`, { cache: "no-store" });
+  const response = await fetch(`${apiBase}/v1/analytics`, { cache: "no-store", headers: authHeaders() });
   if (!response.ok) throw new Error("failed to fetch analytics");
   return (await response.json()) as AnalyticsSummary;
 }
 
 export async function fetchSources() {
-  const response = await fetch(`${apiBase}/v1/sources`, { cache: "no-store" });
+  const response = await fetch(`${apiBase}/v1/sources`, { cache: "no-store", headers: authHeaders() });
   if (!response.ok) throw new Error("failed to fetch sources");
   const payload = (await response.json()) as { sources: SourceSummary[] };
   return payload.sources;
 }
 
 export async function fetchAPIKeys() {
-  const response = await fetch(`${apiBase}/v1/api-keys`, { cache: "no-store" });
+  const response = await fetch(`${apiBase}/v1/api-keys`, { cache: "no-store", headers: authHeaders() });
   if (!response.ok) throw new Error("failed to fetch api keys");
   const payload = (await response.json()) as { api_keys: APIKey[] };
   return payload.api_keys;
@@ -24,7 +24,7 @@ export async function fetchAPIKeys() {
 export async function createAPIKey(name: string) {
   const response = await fetch(`${apiBase}/v1/api-keys`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ name })
   });
   if (!response.ok) throw new Error("failed to create api key");
@@ -33,7 +33,8 @@ export async function createAPIKey(name: string) {
 
 export async function revokeAPIKey(id: string) {
   const response = await fetch(`${apiBase}/v1/api-keys/${id}`, {
-    method: "DELETE"
+    method: "DELETE",
+    headers: authHeaders()
   });
   if (!response.ok) throw new Error("failed to revoke api key");
 }
@@ -47,7 +48,7 @@ export async function parseTextLog(input: {
 }) {
   const response = await fetch(`${apiBase}/v1/logs/parse`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify(input)
   });
   if (!response.ok) throw new Error("failed to parse log");
@@ -57,7 +58,7 @@ export async function parseTextLog(input: {
 export async function bulkIngestLogs(logs: Array<Omit<LogEvent, "id" | "timestamp" | "received_at">>) {
   const response = await fetch(`${apiBase}/v1/logs/bulk`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { ...authHeaders(), "Content-Type": "application/json" },
     body: JSON.stringify({ logs })
   });
   if (!response.ok) throw new Error("failed to ingest bulk logs");
@@ -65,7 +66,7 @@ export async function bulkIngestLogs(logs: Array<Omit<LogEvent, "id" | "timestam
 }
 
 export async function fetchRuntime() {
-  const response = await fetch(`${apiBase}/v1/runtime`, { cache: "no-store" });
+  const response = await fetch(`${apiBase}/v1/runtime`, { cache: "no-store", headers: authHeaders() });
   if (!response.ok) throw new Error("failed to fetch runtime stats");
   return (await response.json()) as RuntimeStats;
 }
@@ -76,6 +77,14 @@ export function logExportURL() {
 
 export async function registerUser(email: string, password: string) {
   return authRequest("/v1/auth/register", email, password);
+}
+
+export function authHeaders() {
+  if (typeof window === "undefined") {
+    return {};
+  }
+  const token = window.localStorage.getItem("logmesh_token");
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
 export async function loginUser(email: string, password: string) {
