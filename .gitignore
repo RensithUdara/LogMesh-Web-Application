@@ -3,6 +3,11 @@
 *.test
 /bin/
 /dist/
+node_modules/
+.next/
+dashboard/node_modules/
+dashboard/.next/
+dashboard/out/
 
 # Local configuration
 .env
