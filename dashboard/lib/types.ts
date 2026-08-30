@@ -59,3 +59,15 @@ export type APIKey = {
   revoked_at?: string;
   plaintext_key?: string;
 };
+
+export type RuntimeStats = {
+  service: string;
+  uptime_seconds: number;
+  go_version: string;
+  goroutines: number;
+  allocated_bytes: number;
+  heap_alloc_bytes: number;
+  total_alloc_bytes: number;
+  num_gc: number;
+  stored_logs: number;
+};
