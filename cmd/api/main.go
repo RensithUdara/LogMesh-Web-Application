@@ -19,6 +19,7 @@ import (
 )
 
 func main() {
+	config.LoadDotEnv(".env")
 	cfg := config.Load()
 
 	if cfg.Environment == "production" {
@@ -37,9 +38,16 @@ func main() {
 	analyticsHandler := handler.NewAnalyticsHandler(service.NewAnalyticsService(logService))
 	keyHandler := handler.NewAPIKeyHandler(keyService)
 	streamHandler := handler.NewStreamHandler(eventHub)
+	exportHandler := handler.NewExportHandler(service.NewExportService(logService))
+	runtimeHandler := handler.NewRuntimeHandler(service.NewRuntimeService(logService))
 
 	router := gin.New()
-	router.Use(gin.Recovery(), middleware.CORS(), middleware.RequestLogger(logger))
+	router.Use(
+		gin.Recovery(),
+		middleware.CORS(),
+		middleware.RateLimiter(cfg.RateLimitRequests, time.Duration(cfg.RateLimitWindow)*time.Second),
+		middleware.RequestLogger(logger),
+	)
 
 	router.GET("/healthz", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -52,11 +60,15 @@ func main() {
 	v1 := router.Group("/v1")
 	{
 		v1.POST("/logs", middleware.APIKeyAuth(keyService, cfg.RequireAPIKey), logHandler.Ingest)
+		v1.POST("/logs/bulk", middleware.APIKeyAuth(keyService, cfg.RequireAPIKey), logHandler.BulkIngest)
+		v1.POST("/logs/parse", middleware.APIKeyAuth(keyService, cfg.RequireAPIKey), logHandler.ParseAndIngest)
+		v1.GET("/logs/export", exportHandler.LogsCSV)
 		v1.GET("/logs", logHandler.Search)
 		v1.GET("/logs/:id", logHandler.GetByID)
 		v1.GET("/stream/logs", streamHandler.Logs)
 		v1.GET("/analytics", analyticsHandler.Summary)
 		v1.GET("/sources", analyticsHandler.Sources)
+		v1.GET("/runtime", runtimeHandler.Stats)
 		v1.GET("/api-keys", keyHandler.List)
 		v1.POST("/api-keys", keyHandler.Create)
 		v1.DELETE("/api-keys/:id", keyHandler.Revoke)
