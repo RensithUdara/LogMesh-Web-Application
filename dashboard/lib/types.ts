@@ -71,3 +71,13 @@ export type RuntimeStats = {
   num_gc: number;
   stored_logs: number;
 };
+
+export type AuthResponse = {
+  token: string;
+  user: {
+    id: string;
+    project_id: string;
+    email: string;
+    created_at: string;
+  };
+};
