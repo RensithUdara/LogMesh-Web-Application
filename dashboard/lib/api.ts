@@ -1,5 +1,5 @@
 import { apiBase } from "./constants";
-import type { APIKey, AnalyticsSummary, LogEvent, RuntimeStats, SourceSummary } from "./types";
+import type { APIKey, AnalyticsSummary, AuthResponse, LogEvent, RuntimeStats, SourceSummary } from "./types";
 
 export async function fetchAnalytics() {
   const response = await fetch(`${apiBase}/v1/analytics`, { cache: "no-store" });
@@ -72,4 +72,22 @@ export async function fetchRuntime() {
 
 export function logExportURL() {
   return `${apiBase}/v1/logs/export?limit=500`;
+}
+
+export async function registerUser(email: string, password: string) {
+  return authRequest("/v1/auth/register", email, password);
+}
+
+export async function loginUser(email: string, password: string) {
+  return authRequest("/v1/auth/login", email, password);
+}
+
+async function authRequest(path: string, email: string, password: string) {
+  const response = await fetch(`${apiBase}${path}`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password })
+  });
+  if (!response.ok) throw new Error("authentication failed");
+  return (await response.json()) as AuthResponse;
 }
