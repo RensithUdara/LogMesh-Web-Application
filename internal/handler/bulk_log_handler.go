@@ -5,6 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"logmesh/internal/metrics"
 	"logmesh/internal/model"
 )
 
@@ -39,6 +40,10 @@ func (h *LogHandler) BulkIngest(c *gin.Context) {
 		if h.hub != nil {
 			h.hub.Publish(event)
 		}
+		if h.producer != nil {
+			_ = h.producer.Publish(c.Request.Context(), event)
+		}
+		metrics.CountIngest(string(event.Level), event.Service)
 		accepted = append(accepted, event)
 	}
 
