@@ -3,11 +3,11 @@ services:
     build: .
     environment:
       LOGMESH_ENV: development
-      LOGMESH_HTTP_ADDR: :8080
+      LOGMESH_HTTP_ADDR: :8081
       LOGMESH_LOG_LEVEL: info
       LOGMESH_MAX_STORED_LOGS: 10000
     ports:
-      - "8080:8080"
+      - "8081:8081"
 
   postgres:
     image: postgres:16-alpine
