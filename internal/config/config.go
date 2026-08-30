@@ -12,6 +12,7 @@ type Config struct {
 	HTTPAddr      string
 	LogLevel      slog.Level
 	MaxStoredLogs int
+	RequireAPIKey bool
 }
 
 func Load() Config {
@@ -20,6 +21,7 @@ func Load() Config {
 		HTTPAddr:      envString("LOGMESH_HTTP_ADDR", ":8080"),
 		LogLevel:      parseLogLevel(envString("LOGMESH_LOG_LEVEL", "info")),
 		MaxStoredLogs: envInt("LOGMESH_MAX_STORED_LOGS", 10000),
+		RequireAPIKey: envBool("LOGMESH_REQUIRE_API_KEY", false),
 	}
 }
 
@@ -42,6 +44,14 @@ func envInt(key string, fallback int) int {
 		return fallback
 	}
 	return parsed
+}
+
+func envBool(key string, fallback bool) bool {
+	value := strings.ToLower(strings.TrimSpace(os.Getenv(key)))
+	if value == "" {
+		return fallback
+	}
+	return value == "true" || value == "1" || value == "yes"
 }
 
 func parseLogLevel(value string) slog.Level {
