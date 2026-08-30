@@ -160,6 +160,9 @@ http://localhost:3000
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/healthz` | Health check |
+| `GET` | `/metrics` | Prometheus metrics |
+| `POST` | `/v1/auth/register` | Register dashboard user and project |
+| `POST` | `/v1/auth/login` | Login and receive JWT |
 | `POST` | `/v1/logs` | Ingest one structured log |
 | `POST` | `/v1/logs/bulk` | Ingest up to 500 logs |
 | `POST` | `/v1/logs/parse` | Parse and ingest a plain-text log |
@@ -418,6 +421,25 @@ The Next.js dashboard includes:
 - 📡 Live mode using SSE
 - 🧠 Runtime stats in settings
 
+## ⚙️ Run Processor
+
+The processor consumes logs from Kafka-compatible brokers and writes batches to OpenSearch.
+
+```powershell
+$env:LOGMESH_KAFKA_BROKERS="localhost:19092"
+$env:LOGMESH_OPENSEARCH_URL="http://localhost:9200"
+go run ./cmd/processor
+```
+
+Processor behavior:
+
+- Uses Kafka consumer group `logmesh-processors`
+- Reads from `LOGMESH_KAFKA_LOGS_TOPIC`
+- Writes failed events to `LOGMESH_KAFKA_DLQ_TOPIC`
+- Uses bounded channels for backpressure
+- Flushes by batch size or batch timeout
+- Retries failed OpenSearch writes before DLQ
+
 ## 🧪 Testing
 
 Run backend tests:
@@ -443,9 +465,51 @@ Docker files are included for future service orchestration:
 Current compose services include:
 
 - API
+- Processor
+- Redpanda Kafka-compatible broker
 - PostgreSQL
 - Redis
 - OpenSearch
+- Prometheus
+- Grafana
+
+Run the stack:
+
+```powershell
+docker compose up --build
+```
+
+Service URLs:
+
+```text
+API:        http://localhost:8081
+Prometheus: http://localhost:9090
+Grafana:    http://localhost:3001
+Kafka:      localhost:19092
+OpenSearch: http://localhost:9200
+```
+
+Grafana login:
+
+```text
+Username: admin
+Password: logmesh
+```
+
+## 🏋️ Load Testing
+
+PowerShell load test:
+
+```powershell
+.\scripts\load-test.ps1 -ApiUrl http://localhost:8081 -Requests 1000 -Concurrency 20
+```
+
+k6 load test:
+
+```powershell
+$env:LOGMESH_API_URL="http://localhost:8081"
+k6 run scripts/k6-load-test.js
+```
 
 ## 🧭 Roadmap
 
@@ -466,27 +530,35 @@ Current compose services include:
 - Source discovery
 - Runtime metrics
 - API key creation/revocation
+- JWT register/login
+- Multi-tenant project scoping with JWT or `X-Project-ID`
 - Optional API-key ingestion auth
 - In-memory rate limiting
+- Redis-backed distributed rate limiting
 - SSE live log stream
+- Kafka producer for ingestion
+- Kafka consumer and processor command
+- Bounded worker pool for backpressure
+- OpenSearch indexing and search query translation
+- Retry handling and dead-letter queue
+- PostgreSQL metadata schema and API-key persistence
+- Prometheus metrics endpoint
+- Grafana dashboard provisioning
+- Load-testing scripts
 - Next.js dashboard
 - Frontend build verification
 - Backend unit tests
 
 ### 🚧 Next Steps
 
-1. Add Kafka producer for `POST /v1/logs`.
-2. Add Kafka consumer and processor command.
-3. Add bounded worker pool for backpressure.
-4. Add OpenSearch indexing and search query translation.
-5. Add PostgreSQL persistence for users, projects, sources, and API keys.
-6. Add Redis-backed distributed rate limiting.
-7. Add JWT dashboard authentication.
-8. Add multi-tenant project isolation.
-9. Add retry handling and dead-letter queue.
-10. Add Prometheus metrics endpoint.
-11. Add Grafana dashboard.
-12. Add load-testing scripts.
+1. Persist users/projects fully in PostgreSQL instead of only bootstrapping schema.
+2. Make the API search OpenSearch directly when `LOGMESH_OPENSEARCH_URL` is enabled.
+3. Add Kafka topic auto-creation and startup readiness checks.
+4. Add refresh-token flow for dashboard auth.
+5. Add dashboard project switcher and tenant administration.
+6. Add OpenSearch index templates and retention policies.
+7. Add processor lag metrics.
+8. Add integration tests with Docker Compose.
 
 ## 🧠 Design Decisions
 
