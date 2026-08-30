@@ -29,9 +29,10 @@ func NewAuthService(jwtSecret string) *AuthService {
 	}
 }
 
-func (s *AuthService) Register(_ context.Context, email, password string) (model.AuthResponse, error) {
+func (s *AuthService) Register(_ context.Context, name, email, password string) (model.AuthResponse, error) {
+	name = strings.TrimSpace(name)
 	email = strings.ToLower(strings.TrimSpace(email))
-	if email == "" || len(password) < 8 {
+	if name == "" || email == "" || len(password) < 8 {
 		return model.AuthResponse{}, ErrInvalidCredentials
 	}
 
@@ -43,6 +44,7 @@ func (s *AuthService) Register(_ context.Context, email, password string) (model
 	user := model.User{
 		ID:           uuid.NewString(),
 		ProjectID:    uuid.NewString(),
+		Name:         name,
 		Email:        email,
 		PasswordHash: string(passwordHash),
 		CreatedAt:    time.Now().UTC(),
@@ -99,6 +101,7 @@ func (s *AuthService) tokenFor(user model.User) (string, error) {
 	claims := jwt.MapClaims{
 		"sub":        user.ID,
 		"project_id": user.ProjectID,
+		"name":       user.Name,
 		"email":      user.Email,
 		"exp":        time.Now().Add(24 * time.Hour).Unix(),
 		"iat":        time.Now().Unix(),
