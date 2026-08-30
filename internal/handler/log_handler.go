@@ -125,6 +125,7 @@ func parseSearchQuery(c *gin.Context) (model.SearchLogsQuery, error) {
 
 	return model.SearchLogsQuery{
 		Service:     strings.TrimSpace(c.Query("service")),
+		ProjectID:   strings.TrimSpace(c.Query("project_id")),
 		Environment: strings.TrimSpace(c.Query("environment")),
 		Level:       level,
 		Search:      strings.TrimSpace(c.Query("search")),
