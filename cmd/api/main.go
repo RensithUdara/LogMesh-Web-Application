@@ -70,6 +70,8 @@ func main() {
 	router.Use(
 		gin.Recovery(),
 		middleware.CORS(),
+		middleware.ProjectScope(),
+		middleware.OptionalJWTProjectScope(authService),
 		rateLimiterMiddleware(redisClient, cfg),
 		metrics.Middleware(),
 		middleware.RequestLogger(logger),
