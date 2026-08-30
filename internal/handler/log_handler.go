@@ -9,17 +9,20 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"logmesh/internal/kafka"
+	"logmesh/internal/metrics"
 	"logmesh/internal/model"
 	"logmesh/internal/service"
 )
 
 type LogHandler struct {
-	logs service.LogService
-	hub  *service.EventHub
+	logs     service.LogService
+	hub      *service.EventHub
+	producer kafka.Producer
 }
 
-func NewLogHandler(logs service.LogService, hub *service.EventHub) *LogHandler {
-	return &LogHandler{logs: logs, hub: hub}
+func NewLogHandler(logs service.LogService, hub *service.EventHub, producer kafka.Producer) *LogHandler {
+	return &LogHandler{logs: logs, hub: hub, producer: producer}
 }
 
 func (h *LogHandler) Ingest(c *gin.Context) {
@@ -33,6 +36,7 @@ func (h *LogHandler) Ingest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	applyProjectScope(c, &req)
 
 	event, err := h.logs.Ingest(c.Request.Context(), req)
 	if err != nil {
@@ -43,6 +47,10 @@ func (h *LogHandler) Ingest(c *gin.Context) {
 	if h.hub != nil {
 		h.hub.Publish(event)
 	}
+	if h.producer != nil {
+		_ = h.producer.Publish(c.Request.Context(), event)
+	}
+	metrics.CountIngest(string(event.Level), event.Service)
 
 	c.JSON(http.StatusAccepted, event)
 }
@@ -73,6 +81,9 @@ func (h *LogHandler) Search(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	if query.ProjectID == "" {
+		query.ProjectID = c.GetString("project_id")
+	}
 
 	result, err := h.logs.Search(c.Request.Context(), query)
 	if err != nil {
@@ -81,6 +92,12 @@ func (h *LogHandler) Search(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, result)
+}
+
+func applyProjectScope(c *gin.Context, req *model.IngestLogRequest) {
+	if req.ProjectID == "" {
+		req.ProjectID = c.GetString("project_id")
+	}
 }
 
 func (h *LogHandler) GetByID(c *gin.Context) {
