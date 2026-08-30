@@ -17,6 +17,7 @@ import {
   Gauge,
   KeyRound,
   Layers3,
+  LogIn,
   LineChart as LineChartIcon,
   Loader2,
   LockKeyhole,
@@ -52,7 +53,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import { bulkIngestLogs, createAPIKey, fetchAPIKeys, fetchAnalytics, fetchRuntime, fetchSources, logExportURL, parseTextLog, revokeAPIKey } from "@/lib/api";
+import { bulkIngestLogs, createAPIKey, fetchAPIKeys, fetchAnalytics, fetchRuntime, fetchSources, logExportURL, loginUser, parseTextLog, registerUser, revokeAPIKey } from "@/lib/api";
 import { apiBase, environments, levelClass, levels, services } from "@/lib/constants";
 import type { APIKey, AnalyticsSummary, CountBucket, LogEvent, LogLevel, RuntimeStats, SearchResponse, SourceSummary, TimelineBucket } from "@/lib/types";
 
@@ -123,6 +124,9 @@ export default function Dashboard() {
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [newKeyName, setNewKeyName] = useState("Production collector");
   const [rawLine, setRawLine] = useState("2026-08-30 10:21:22 ERROR Payment failed while charging card");
+  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const [authForm, setAuthForm] = useState({ email: "demo@logmesh.local", password: "password123" });
+  const [authToken, setAuthToken] = useState<string | null>(null);
   const [form, setForm] = useState({
     service: "payment-service",
     environment: "production",
@@ -160,6 +164,7 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
+    setAuthToken(window.localStorage.getItem("logmesh_token"));
     void checkHealth();
     void fetchLogs();
     void fetchServerPanels();
@@ -307,6 +312,26 @@ export default function Dashboard() {
     }
   };
 
+  const submitAuth = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    try {
+      const response =
+        authMode === "login"
+          ? await loginUser(authForm.email, authForm.password)
+          : await registerUser(authForm.email, authForm.password);
+      window.localStorage.setItem("logmesh_token", response.token);
+      setAuthToken(response.token);
+      setToast({ type: "success", message: authMode === "login" ? "Signed in" : "Account created" });
+    } catch {
+      setToast({ type: "error", message: "Auth failed" });
+    }
+  };
+
+  const logout = () => {
+    window.localStorage.removeItem("logmesh_token");
+    setAuthToken(null);
+  };
+
   async function checkHealth() {
     try {
       const response = await fetch(`${apiBase}/healthz`, { cache: "no-store" });
@@ -378,8 +403,37 @@ export default function Dashboard() {
             <button className="icon-button" type="button" title="Notifications">
               <Bell size={18} />
             </button>
+            <button className="toggle" type="button" onClick={logout} title={authToken ? "Sign out" : "Not signed in"}>
+              <LogIn size={16} />
+              <span>{authToken ? "Signed In" : "Guest"}</span>
+            </button>
           </div>
         </header>
+
+        {!authToken && (
+          <form className="panel auth-panel" onSubmit={submitAuth}>
+            <div className="panel-title">
+              <h2>{authMode === "login" ? "Login" : "Register"}</h2>
+              <button className="secondary-button" type="button" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}>
+                {authMode === "login" ? "Register" : "Login"}
+              </button>
+            </div>
+            <div className="form-grid">
+              <label>
+                Email
+                <input value={authForm.email} onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })} />
+              </label>
+              <label>
+                Password
+                <input type="password" value={authForm.password} onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })} />
+              </label>
+            </div>
+            <button className="primary-button" type="submit">
+              <LogIn size={17} />
+              {authMode === "login" ? "Login" : "Create Account"}
+            </button>
+          </form>
+        )}
 
         <section className="metrics-grid">
           <Metric icon={<Database size={20} />} label="Total Logs" value={(analytics?.total ?? stats.total).toLocaleString()} tone="blue" />
