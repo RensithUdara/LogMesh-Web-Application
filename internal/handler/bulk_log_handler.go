@@ -31,6 +31,7 @@ func (h *LogHandler) BulkIngest(c *gin.Context) {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error(), "index": index})
 			return
 		}
+		applyProjectScope(c, &item)
 
 		event, err := h.logs.Ingest(c.Request.Context(), item)
 		if err != nil {
