@@ -1,4 +1,4 @@
-# 🚀 LogMesh
+# 🚀 LogMesh Web Application
 
 **LogMesh** is a distributed log aggregation and monitoring platform built with **Go**, **Gin**, and **Next.js**.
 
