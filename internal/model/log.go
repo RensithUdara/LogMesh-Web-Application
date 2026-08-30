@@ -15,6 +15,7 @@ const (
 
 type LogEvent struct {
 	ID          string                 `json:"id"`
+	ProjectID   string                 `json:"project_id,omitempty"`
 	Timestamp   time.Time              `json:"timestamp"`
 	Service     string                 `json:"service"`
 	Environment string                 `json:"environment"`
@@ -28,6 +29,7 @@ type LogEvent struct {
 
 type IngestLogRequest struct {
 	Timestamp   *time.Time             `json:"timestamp"`
+	ProjectID   string                 `json:"project_id"`
 	Service     string                 `json:"service"`
 	Environment string                 `json:"environment"`
 	Level       LogLevel               `json:"level"`
@@ -39,6 +41,7 @@ type IngestLogRequest struct {
 
 type SearchLogsQuery struct {
 	Service     string
+	ProjectID   string
 	Environment string
 	Level       LogLevel
 	Search      string
