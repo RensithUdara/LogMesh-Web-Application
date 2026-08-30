@@ -226,6 +226,10 @@ button {
   margin-bottom: 14px;
 }
 
+.auth-panel {
+  margin-bottom: 14px;
+}
+
 .metric,
 .panel {
   background: var(--panel);
