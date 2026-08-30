@@ -75,8 +75,8 @@ export function logExportURL() {
   return `${apiBase}/v1/logs/export?limit=500`;
 }
 
-export async function registerUser(email: string, password: string) {
-  return authRequest("/v1/auth/register", email, password);
+export async function registerUser(name: string, email: string, password: string) {
+  return authRequest("/v1/auth/register", email, password, name);
 }
 
 export function authHeaders(): Record<string, string> {
@@ -91,11 +91,11 @@ export async function loginUser(email: string, password: string) {
   return authRequest("/v1/auth/login", email, password);
 }
 
-async function authRequest(path: string, email: string, password: string) {
+async function authRequest(path: string, email: string, password: string, name?: string) {
   const response = await fetch(`${apiBase}${path}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email, password })
+    body: JSON.stringify({ name, email, password })
   });
   if (!response.ok) throw new Error("authentication failed");
   return (await response.json()) as AuthResponse;
