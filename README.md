@@ -7,6 +7,10 @@ This repository starts with the smallest useful slice of the system:
 - `POST /v1/logs` ingests structured logs.
 - `GET /v1/logs` searches the in-memory store with filters.
 - `GET /v1/logs/:id` returns one log event.
+- `GET /v1/analytics` returns counts, error rate, top services, top errors, and timeline buckets.
+- `GET /v1/sources` returns discovered service/environment sources.
+- `GET /v1/stream/logs` streams newly ingested logs over Server-Sent Events.
+- `GET /v1/api-keys`, `POST /v1/api-keys`, and `DELETE /v1/api-keys/:id` manage API keys.
 - `GET /healthz` reports service health.
 - `dashboard/` provides a Next.js dashboard for ingestion, search, analytics, sources, keys, and settings.
 
@@ -20,6 +24,8 @@ go run ./cmd/api
 ```
 
 The API listens on `http://localhost:8080` by default.
+
+Set `LOGMESH_REQUIRE_API_KEY=true` to require `X-API-Key` or `Authorization: Bearer <key>` on log ingestion.
 
 ## Run Dashboard
 
