@@ -11,10 +11,12 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"logmesh/internal/config"
 	"logmesh/internal/handler"
 	"logmesh/internal/kafka"
+	"logmesh/internal/metrics"
 	"logmesh/internal/middleware"
 	"logmesh/internal/service"
 )
@@ -30,12 +32,17 @@ func main() {
 	logger := slog.New(slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: cfg.LogLevel,
 	}))
+	metrics.Register()
 
 	logService := service.NewInMemoryLogService(cfg.MaxStoredLogs)
 	keyService := service.NewInMemoryAPIKeyService()
 	eventHub := service.NewEventHub()
 	logProducer := kafka.NewProducer(cfg.KafkaBrokers, cfg.KafkaLogsTopic)
 	defer logProducer.Close()
+	redisClient := middleware.NewRedisClient(cfg.RedisURL)
+	if redisClient != nil {
+		defer redisClient.Close()
+	}
 
 	logHandler := handler.NewLogHandler(logService, eventHub, logProducer)
 	analyticsHandler := handler.NewAnalyticsHandler(service.NewAnalyticsService(logService))
@@ -48,7 +55,8 @@ func main() {
 	router.Use(
 		gin.Recovery(),
 		middleware.CORS(),
-		middleware.RateLimiter(cfg.RateLimitRequests, time.Duration(cfg.RateLimitWindow)*time.Second),
+		rateLimiterMiddleware(redisClient, cfg),
+		metrics.Middleware(),
 		middleware.RequestLogger(logger),
 	)
 
@@ -59,6 +67,7 @@ func main() {
 			"environment": cfg.Environment,
 		})
 	})
+	router.GET("/metrics", gin.WrapH(promhttp.Handler()))
 
 	v1 := router.Group("/v1")
 	{
@@ -104,4 +113,14 @@ func main() {
 	}
 
 	logger.Info("api stopped")
+}
+
+func rateLimiterMiddleware(redisClient any, cfg config.Config) gin.HandlerFunc {
+	window := time.Duration(cfg.RateLimitWindow) * time.Second
+	if client, ok := redisClient.(interface{}); ok && client != nil {
+		if typed, ok := client.(*redis.Client); ok {
+			return middleware.RedisRateLimiter(typed, cfg.RateLimitRequests, window)
+		}
+	}
+	return middleware.RateLimiter(cfg.RateLimitRequests, window)
 }
