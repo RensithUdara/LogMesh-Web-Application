@@ -1,6 +1,6 @@
 import type { LogLevel } from "./types";
 
-export const apiBase = process.env.NEXT_PUBLIC_LOGMESH_API_URL ?? "http://localhost:8080";
+export const apiBase = process.env.NEXT_PUBLIC_LOGMESH_API_URL ?? "http://localhost:8081";
 
 export const levels: Array<"ALL" | LogLevel> = ["ALL", "TRACE", "DEBUG", "INFO", "WARN", "ERROR", "FATAL"];
 
