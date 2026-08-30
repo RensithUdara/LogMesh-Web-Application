@@ -11,6 +11,8 @@ import {
   ClipboardList,
   Clock3,
   Database,
+  FileDown,
+  FileText,
   Filter,
   Gauge,
   KeyRound,
@@ -50,9 +52,9 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import { createAPIKey, fetchAPIKeys, fetchAnalytics, fetchSources, revokeAPIKey } from "@/lib/api";
+import { createAPIKey, fetchAPIKeys, fetchAnalytics, fetchRuntime, fetchSources, logExportURL, parseTextLog, revokeAPIKey } from "@/lib/api";
 import { apiBase, environments, levelClass, levels, services } from "@/lib/constants";
-import type { APIKey, AnalyticsSummary, CountBucket, LogEvent, LogLevel, SearchResponse, SourceSummary, TimelineBucket } from "@/lib/types";
+import type { APIKey, AnalyticsSummary, CountBucket, LogEvent, LogLevel, RuntimeStats, SearchResponse, SourceSummary, TimelineBucket } from "@/lib/types";
 
 type Tab = "logs" | "analytics" | "sources" | "keys" | "settings";
 
@@ -117,8 +119,10 @@ export default function Dashboard() {
   const [analytics, setAnalytics] = useState<AnalyticsSummary | null>(null);
   const [sourceRows, setSourceRows] = useState<SourceSummary[]>([]);
   const [apiKeys, setApiKeys] = useState<APIKey[]>([]);
+  const [runtime, setRuntime] = useState<RuntimeStats | null>(null);
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [newKeyName, setNewKeyName] = useState("Production collector");
+  const [rawLine, setRawLine] = useState("2026-08-30 10:21:22 ERROR Payment failed while charging card");
   const [form, setForm] = useState({
     service: "payment-service",
     environment: "production",
@@ -256,16 +260,29 @@ export default function Dashboard() {
 
   const seedDemoLogs = async (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault();
-    for (const sample of starterLogs) {
-      await fetch(`${apiBase}/v1/logs`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(sample)
-      });
-    }
+    await bulkIngestLogs(starterLogs);
     setToast({ type: "success", message: "Demo logs added" });
     await fetchLogs();
     await fetchServerPanels();
+  };
+
+  const submitRawLog = async (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    try {
+      const created = await parseTextLog({
+        service: form.service,
+        environment: form.environment,
+        host: form.host,
+        trace_id: form.trace_id,
+        line: rawLine
+      });
+      setToast({ type: "success", message: "Raw log parsed" });
+      setSelectedLog(created);
+      await fetchLogs();
+      await fetchServerPanels();
+    } catch {
+      setToast({ type: "error", message: "Unable to parse raw log" });
+    }
   };
 
   const createKey = async (event: FormEvent<HTMLFormElement>) => {
@@ -301,10 +318,11 @@ export default function Dashboard() {
 
   async function fetchServerPanels() {
     try {
-      const [summary, sources, keys] = await Promise.all([fetchAnalytics(), fetchSources(), fetchAPIKeys()]);
+      const [summary, sources, keys, runtimeStats] = await Promise.all([fetchAnalytics(), fetchSources(), fetchAPIKeys(), fetchRuntime()]);
       setAnalytics(summary);
       setSourceRows(sources);
       setApiKeys(keys);
+      setRuntime(runtimeStats);
     } catch {
       setApiStatus("offline");
     }
@@ -350,6 +368,9 @@ export default function Dashboard() {
             <button className="icon-button" type="button" title="Refresh logs" onClick={() => void fetchLogs()}>
               <RefreshCw size={18} />
             </button>
+            <a className="icon-button" href={logExportURL()} title="Export CSV">
+              <FileDown size={18} />
+            </a>
             <button className={`toggle ${autoRefresh ? "on" : ""}`} type="button" onClick={() => setAutoRefresh((value) => !value)}>
               {autoRefresh ? <Pause size={16} /> : <Play size={16} />}
               <span>{autoRefresh ? "Live" : "Paused"}</span>
@@ -485,6 +506,18 @@ export default function Dashboard() {
                 <Plus size={17} />
                 Send Log
               </button>
+
+              <div className="raw-log-box">
+                <div className="panel-title compact-title">
+                  <h2>Raw Text</h2>
+                  <FileText size={17} />
+                </div>
+                <textarea value={rawLine} onChange={(event) => setRawLine(event.target.value)} rows={3} />
+                <button className="secondary-button full-width" type="button" onClick={submitRawLog}>
+                  <FileText size={16} />
+                  Parse Text Log
+                </button>
+              </div>
             </form>
           </section>
         )}
@@ -501,7 +534,7 @@ export default function Dashboard() {
             onRevoke={revokeKey}
           />
         )}
-        {activeTab === "settings" && <SettingsView />}
+        {activeTab === "settings" && <SettingsView runtime={runtime} />}
       </section>
 
       {toast && (
