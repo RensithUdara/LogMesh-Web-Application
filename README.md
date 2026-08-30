@@ -5,10 +5,14 @@ Distributed log aggregation and monitoring platform, built in Go.
 This repository starts with the smallest useful slice of the system:
 
 - `POST /v1/logs` ingests structured logs.
+- `POST /v1/logs/bulk` ingests up to 500 structured logs in one request.
+- `POST /v1/logs/parse` parses plain text logs like `2026-08-30 10:21:22 ERROR Payment failed`.
 - `GET /v1/logs` searches the in-memory store with filters.
 - `GET /v1/logs/:id` returns one log event.
+- `GET /v1/logs/export` exports filtered logs as CSV.
 - `GET /v1/analytics` returns counts, error rate, top services, top errors, and timeline buckets.
 - `GET /v1/sources` returns discovered service/environment sources.
+- `GET /v1/runtime` returns uptime, memory, goroutine, GC, and stored-log runtime stats.
 - `GET /v1/stream/logs` streams newly ingested logs over Server-Sent Events.
 - `GET /v1/api-keys`, `POST /v1/api-keys`, and `DELETE /v1/api-keys/:id` manage API keys.
 - `GET /healthz` reports service health.
@@ -26,6 +30,7 @@ go run ./cmd/api
 The API listens on `http://localhost:8081` by default.
 
 Set `LOGMESH_REQUIRE_API_KEY=true` to require `X-API-Key` or `Authorization: Bearer <key>` on log ingestion.
+Rate limiting is controlled by `LOGMESH_RATE_LIMIT_REQUESTS` and `LOGMESH_RATE_LIMIT_WINDOW_SECONDS`.
 
 ## Run Dashboard
 
