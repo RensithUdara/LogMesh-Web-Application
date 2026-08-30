@@ -12,6 +12,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/redis/go-redis/v9"
 
 	"logmesh/internal/config"
 	"logmesh/internal/handler"
@@ -115,12 +116,10 @@ func main() {
 	logger.Info("api stopped")
 }
 
-func rateLimiterMiddleware(redisClient any, cfg config.Config) gin.HandlerFunc {
+func rateLimiterMiddleware(redisClient *redis.Client, cfg config.Config) gin.HandlerFunc {
 	window := time.Duration(cfg.RateLimitWindow) * time.Second
-	if client, ok := redisClient.(interface{}); ok && client != nil {
-		if typed, ok := client.(*redis.Client); ok {
-			return middleware.RedisRateLimiter(typed, cfg.RateLimitRequests, window)
-		}
+	if redisClient != nil {
+		return middleware.RedisRateLimiter(redisClient, cfg.RateLimitRequests, window)
 	}
 	return middleware.RateLimiter(cfg.RateLimitRequests, window)
 }
