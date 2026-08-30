@@ -23,7 +23,7 @@ go mod tidy
 go run ./cmd/api
 ```
 
-The API listens on `http://localhost:8080` by default.
+The API listens on `http://localhost:8081` by default.
 
 Set `LOGMESH_REQUIRE_API_KEY=true` to require `X-API-Key` or `Authorization: Bearer <key>` on log ingestion.
 
@@ -35,12 +35,12 @@ npm install
 npm run dev
 ```
 
-The dashboard listens on `http://localhost:3000` by default and calls the Go API at `http://localhost:8080`.
+The dashboard listens on `http://localhost:3000` by default and calls the Go API at `http://localhost:8081`.
 
 To point it at another backend:
 
 ```powershell
-$env:NEXT_PUBLIC_LOGMESH_API_URL="http://localhost:8080"
+$env:NEXT_PUBLIC_LOGMESH_API_URL="http://localhost:8081"
 npm run dev
 ```
 
@@ -49,7 +49,7 @@ npm run dev
 ```powershell
 Invoke-RestMethod `
   -Method Post `
-  -Uri http://localhost:8080/v1/logs `
+  -Uri http://localhost:8081/v1/logs `
   -ContentType application/json `
   -Body '{
     "service": "payment-service",
@@ -68,7 +68,7 @@ Invoke-RestMethod `
 ## Example Search
 
 ```powershell
-Invoke-RestMethod "http://localhost:8080/v1/logs?service=payment-service&level=ERROR&search=payment"
+Invoke-RestMethod "http://localhost:8081/v1/logs?service=payment-service&level=ERROR&search=payment"
 ```
 
 Supported query parameters:
