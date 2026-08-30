@@ -8,6 +8,7 @@ This repository starts with the smallest useful slice of the system:
 - `GET /v1/logs` searches the in-memory store with filters.
 - `GET /v1/logs/:id` returns one log event.
 - `GET /healthz` reports service health.
+- `dashboard/` provides a Next.js dashboard for ingestion, search, analytics, sources, keys, and settings.
 
 The current storage is intentionally in-memory so the API contract and domain model can stabilize before Kafka, OpenSearch, PostgreSQL, and Redis are wired in.
 
@@ -19,6 +20,23 @@ go run ./cmd/api
 ```
 
 The API listens on `http://localhost:8080` by default.
+
+## Run Dashboard
+
+```powershell
+cd dashboard
+npm install
+npm run dev
+```
+
+The dashboard listens on `http://localhost:3000` by default and calls the Go API at `http://localhost:8080`.
+
+To point it at another backend:
+
+```powershell
+$env:NEXT_PUBLIC_LOGMESH_API_URL="http://localhost:8080"
+npm run dev
+```
 
 ## Example Ingest
 
@@ -74,5 +92,7 @@ Supported query parameters:
 ## Tests
 
 ```powershell
-go test ./...
+go test ./cmd/... ./internal/...
+cd dashboard
+npm run build
 ```
