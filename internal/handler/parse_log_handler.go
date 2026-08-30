@@ -6,6 +6,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"logmesh/internal/collector"
+	"logmesh/internal/metrics"
 	"logmesh/internal/model"
 )
 
@@ -25,6 +26,7 @@ func (h *LogHandler) ParseAndIngest(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
+	applyProjectScope(c, &ingestReq)
 
 	event, err := h.logs.Ingest(c.Request.Context(), ingestReq)
 	if err != nil {
@@ -34,6 +36,10 @@ func (h *LogHandler) ParseAndIngest(c *gin.Context) {
 	if h.hub != nil {
 		h.hub.Publish(event)
 	}
+	if h.producer != nil {
+		_ = h.producer.Publish(c.Request.Context(), event)
+	}
+	metrics.CountIngest(string(event.Level), event.Service)
 
 	c.JSON(http.StatusAccepted, event)
 }
