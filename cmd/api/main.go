@@ -19,6 +19,7 @@ import (
 	"logmesh/internal/kafka"
 	"logmesh/internal/metrics"
 	"logmesh/internal/middleware"
+	"logmesh/internal/repository"
 	"logmesh/internal/service"
 )
 
@@ -37,6 +38,7 @@ func main() {
 
 	logService := service.NewInMemoryLogService(cfg.MaxStoredLogs)
 	keyService := service.NewInMemoryAPIKeyService()
+	authService := service.NewAuthService(cfg.JWTSecret)
 	eventHub := service.NewEventHub()
 	logProducer := kafka.NewProducer(cfg.KafkaBrokers, cfg.KafkaLogsTopic)
 	defer logProducer.Close()
@@ -44,10 +46,20 @@ func main() {
 	if redisClient != nil {
 		defer redisClient.Close()
 	}
+	postgresPool, err := repository.NewPostgresPool(context.Background(), cfg.PostgresURL)
+	if err != nil {
+		logger.Error("postgres setup failed", "error", err)
+	} else if postgresPool != nil {
+		defer postgresPool.Close()
+		if err := repository.EnsureMetadataSchema(context.Background(), postgresPool); err != nil {
+			logger.Error("postgres schema setup failed", "error", err)
+		}
+	}
 
 	logHandler := handler.NewLogHandler(logService, eventHub, logProducer)
 	analyticsHandler := handler.NewAnalyticsHandler(service.NewAnalyticsService(logService))
 	keyHandler := handler.NewAPIKeyHandler(keyService)
+	authHandler := handler.NewAuthHandler(authService)
 	streamHandler := handler.NewStreamHandler(eventHub)
 	exportHandler := handler.NewExportHandler(service.NewExportService(logService))
 	runtimeHandler := handler.NewRuntimeHandler(service.NewRuntimeService(logService))
@@ -72,6 +84,8 @@ func main() {
 
 	v1 := router.Group("/v1")
 	{
+		v1.POST("/auth/register", authHandler.Register)
+		v1.POST("/auth/login", authHandler.Login)
 		v1.POST("/logs", middleware.APIKeyAuth(keyService, cfg.RequireAPIKey), logHandler.Ingest)
 		v1.POST("/logs/bulk", middleware.APIKeyAuth(keyService, cfg.RequireAPIKey), logHandler.BulkIngest)
 		v1.POST("/logs/parse", middleware.APIKeyAuth(keyService, cfg.RequireAPIKey), logHandler.ParseAndIngest)
