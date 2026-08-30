@@ -19,6 +19,7 @@ type LogService interface {
 	Ingest(ctx context.Context, req model.IngestLogRequest) (model.LogEvent, error)
 	Search(ctx context.Context, query model.SearchLogsQuery) (model.SearchLogsResult, error)
 	GetByID(ctx context.Context, id string) (model.LogEvent, error)
+	Snapshot(ctx context.Context) ([]model.LogEvent, error)
 }
 
 type InMemoryLogService struct {
@@ -43,6 +44,7 @@ func (s *InMemoryLogService) Ingest(_ context.Context, req model.IngestLogReques
 
 	event := model.LogEvent{
 		ID:          uuid.NewString(),
+		ProjectID:   strings.TrimSpace(req.ProjectID),
 		Timestamp:   timestamp,
 		Service:     strings.TrimSpace(req.Service),
 		Environment: normalizeEnvironment(req.Environment),
@@ -112,8 +114,18 @@ func (s *InMemoryLogService) GetByID(_ context.Context, id string) (model.LogEve
 	return model.LogEvent{}, ErrLogNotFound
 }
 
+func (s *InMemoryLogService) Snapshot(_ context.Context) ([]model.LogEvent, error) {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	return slices.Clone(s.logs), nil
+}
+
 func matchesQuery(event model.LogEvent, query model.SearchLogsQuery) bool {
 	if query.Service != "" && event.Service != query.Service {
+		return false
+	}
+	if query.ProjectID != "" && event.ProjectID != query.ProjectID {
 		return false
 	}
 	if query.Environment != "" && event.Environment != query.Environment {
