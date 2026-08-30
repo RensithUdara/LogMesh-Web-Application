@@ -79,7 +79,7 @@ export async function registerUser(email: string, password: string) {
   return authRequest("/v1/auth/register", email, password);
 }
 
-export function authHeaders() {
+export function authHeaders(): Record<string, string> {
   if (typeof window === "undefined") {
     return {};
   }
