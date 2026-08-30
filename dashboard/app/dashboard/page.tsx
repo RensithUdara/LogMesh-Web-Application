@@ -42,6 +42,7 @@ import {
   useRef,
   useState
 } from "react";
+import { useRouter } from "next/navigation";
 import {
   Area,
   AreaChart,
@@ -53,7 +54,7 @@ import {
   XAxis,
   YAxis
 } from "recharts";
-import { authHeaders, bulkIngestLogs, createAPIKey, fetchAPIKeys, fetchAnalytics, fetchRuntime, fetchSources, logExportURL, loginUser, parseTextLog, registerUser, revokeAPIKey } from "@/lib/api";
+import { authHeaders, bulkIngestLogs, createAPIKey, fetchAPIKeys, fetchAnalytics, fetchRuntime, fetchSources, logExportURL, parseTextLog, revokeAPIKey } from "@/lib/api";
 import { apiBase, environments, levelClass, levels, services } from "@/lib/constants";
 import type { APIKey, AnalyticsSummary, CountBucket, LogEvent, LogLevel, RuntimeStats, SearchResponse, SourceSummary, TimelineBucket } from "@/lib/types";
 
@@ -106,6 +107,7 @@ const starterLogs = [
 ] satisfies Array<Omit<LogEvent, "id" | "timestamp" | "received_at">>;
 
 export default function Dashboard() {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState<Tab>("logs");
   const [logs, setLogs] = useState<LogEvent[]>([]);
   const [selectedLog, setSelectedLog] = useState<LogEvent | null>(null);
@@ -124,8 +126,6 @@ export default function Dashboard() {
   const [createdKey, setCreatedKey] = useState<string | null>(null);
   const [newKeyName, setNewKeyName] = useState("Production collector");
   const [rawLine, setRawLine] = useState("2026-08-30 10:21:22 ERROR Payment failed while charging card");
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
-  const [authForm, setAuthForm] = useState({ email: "demo@logmesh.local", password: "password123" });
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [form, setForm] = useState({
     service: "payment-service",
@@ -165,9 +165,14 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    setAuthToken(window.localStorage.getItem("logmesh_token"));
+    const token = window.localStorage.getItem("logmesh_token");
+    if (!token) {
+      router.replace("/");
+      return;
+    }
+    setAuthToken(token);
     void bootstrapDashboard();
-  }, []);
+  }, [router]);
 
   useEffect(() => {
     if (apiStatus !== "online") return;
@@ -320,24 +325,10 @@ export default function Dashboard() {
     }
   };
 
-  const submitAuth = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    try {
-      const response =
-        authMode === "login"
-          ? await loginUser(authForm.email, authForm.password)
-          : await registerUser(authForm.email, authForm.password);
-      window.localStorage.setItem("logmesh_token", response.token);
-      setAuthToken(response.token);
-      setToast({ type: "success", message: authMode === "login" ? "Signed in" : "Account created" });
-    } catch {
-      setToast({ type: "error", message: "Auth failed" });
-    }
-  };
-
   const logout = () => {
     window.localStorage.removeItem("logmesh_token");
     setAuthToken(null);
+    router.replace("/");
   };
 
   async function bootstrapDashboard() {
@@ -428,43 +419,6 @@ export default function Dashboard() {
             </button>
           </div>
         </header>
-
-        {!authToken && (
-          <form className="panel auth-panel" onSubmit={submitAuth}>
-            <div className="panel-title">
-              <h2>{authMode === "login" ? "Login" : "Register"}</h2>
-              <button className="secondary-button" type="button" onClick={() => setAuthMode(authMode === "login" ? "register" : "login")}>
-                {authMode === "login" ? "Register" : "Login"}
-              </button>
-            </div>
-            <div className="form-grid">
-              <label>
-                Email
-                <input
-                  autoComplete="username"
-                  name="email"
-                  type="email"
-                  value={authForm.email}
-                  onChange={(event) => setAuthForm({ ...authForm, email: event.target.value })}
-                />
-              </label>
-              <label>
-                Password
-                <input
-                  autoComplete={authMode === "login" ? "current-password" : "new-password"}
-                  name="password"
-                  type="password"
-                  value={authForm.password}
-                  onChange={(event) => setAuthForm({ ...authForm, password: event.target.value })}
-                />
-              </label>
-            </div>
-            <button className="primary-button" type="submit">
-              <LogIn size={17} />
-              {authMode === "login" ? "Login" : "Create Account"}
-            </button>
-          </form>
-        )}
 
         <section className="metrics-grid">
           <Metric icon={<Database size={20} />} label="Total Logs" value={(analytics?.total ?? stats.total).toLocaleString()} tone="blue" />
