@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS projects (
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
     project_id UUID NOT NULL REFERENCES projects(id),
+    name TEXT NOT NULL,
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
