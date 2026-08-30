@@ -1,5 +1,5 @@
 import { apiBase } from "./constants";
-import type { APIKey, AnalyticsSummary, SourceSummary } from "./types";
+import type { APIKey, AnalyticsSummary, LogEvent, RuntimeStats, SourceSummary } from "./types";
 
 export async function fetchAnalytics() {
   const response = await fetch(`${apiBase}/v1/analytics`, { cache: "no-store" });
@@ -36,4 +36,40 @@ export async function revokeAPIKey(id: string) {
     method: "DELETE"
   });
   if (!response.ok) throw new Error("failed to revoke api key");
+}
+
+export async function parseTextLog(input: {
+  service: string;
+  environment: string;
+  host: string;
+  trace_id: string;
+  line: string;
+}) {
+  const response = await fetch(`${apiBase}/v1/logs/parse`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(input)
+  });
+  if (!response.ok) throw new Error("failed to parse log");
+  return (await response.json()) as LogEvent;
+}
+
+export async function bulkIngestLogs(logs: Array<Omit<LogEvent, "id" | "timestamp" | "received_at">>) {
+  const response = await fetch(`${apiBase}/v1/logs/bulk`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ logs })
+  });
+  if (!response.ok) throw new Error("failed to ingest bulk logs");
+  return (await response.json()) as { accepted: number; logs: LogEvent[] };
+}
+
+export async function fetchRuntime() {
+  const response = await fetch(`${apiBase}/v1/runtime`, { cache: "no-store" });
+  if (!response.ok) throw new Error("failed to fetch runtime stats");
+  return (await response.json()) as RuntimeStats;
+}
+
+export function logExportURL() {
+  return `${apiBase}/v1/logs/export?limit=500`;
 }
