@@ -11,6 +11,8 @@ dashboard/out/
 
 # Local configuration
 .env
+dashboard/.env
+dashboard/.env.local
 
 # Editor and OS noise
 .DS_Store
