@@ -18,3 +18,5 @@ dashboard/.env.local
 Thumbs.db
 .idea/
 config.bat
+
+.env
