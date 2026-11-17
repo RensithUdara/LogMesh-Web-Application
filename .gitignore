@@ -19,3 +19,6 @@ dashboard/.env.local
 Thumbs.db
 .idea/
 .vscode/
+.env.*
+.env.local
+.env.production
