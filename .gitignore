@@ -10,7 +10,6 @@ dashboard/.next/
 dashboard/out/
 
 # Local configuration
-.env
 dashboard/.env
 dashboard/.env.local
 
@@ -18,4 +17,4 @@ dashboard/.env.local
 .DS_Store
 Thumbs.db
 .idea/
-.vscode/
+config.bat
