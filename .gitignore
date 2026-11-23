@@ -17,4 +17,7 @@ dashboard/.env.local
 .DS_Store
 Thumbs.db
 .idea/
-config.bat
+.env
+.env.example
+.env.local
+.env.production
